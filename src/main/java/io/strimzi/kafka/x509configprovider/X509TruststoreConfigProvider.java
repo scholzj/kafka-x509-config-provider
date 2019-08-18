@@ -1,5 +1,6 @@
 package io.strimzi.kafka.x509configprovider;
 
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.config.ConfigChangeCallback;
 import org.apache.kafka.common.config.ConfigData;
 import org.apache.kafka.common.config.provider.ConfigProvider;
@@ -22,12 +23,15 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 public class X509TruststoreConfigProvider implements ConfigProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(X509TruststoreConfigProvider.class);
+
+    private static final String PASSWORD = "changeit";
 
     private final CertificateFactory factory;
 
@@ -40,30 +44,27 @@ public class X509TruststoreConfigProvider implements ConfigProvider {
     public ConfigData get(String path) {
         LOGGER.warn("Get called with path={}" , path);
 
-        //return setupTrustStore().getAbsolutePath();
+        Set<String> certificatePaths = new HashSet<>();
 
-        return null;
+        if (path != null && !path.isEmpty()) {
+            certificatePaths.add(path);
+        }
+
+        return getTrustStoreConfig(certificatePaths);
     }
 
     @Override
     public ConfigData get(String path, Set<String> keys) {
         LOGGER.warn("Get called with path={} and keys={}" , path, keys);
 
-        if (path == null || path.isEmpty()) {
-            path = keys.iterator().next();
+        Set<String> certificatePaths = new HashSet<>();
+        certificatePaths.addAll(keys);
+
+        if (path != null && !path.isEmpty()) {
+            certificatePaths.add(path);
         }
 
-        String trustStorePath = setupTrustStore("changeit".toCharArray(), x509Certificate(path)).getAbsolutePath();
-
-        Map<String, String> data = new HashMap<>();
-        //data.put("xxx", "AAA");
-        for (String key : keys) {
-            LOGGER.warn("Return values {}={}" , key, trustStorePath);
-            data.put(key, trustStorePath);
-        }
-
-        return new ConfigData(data);
-        //return
+        return getTrustStoreConfig(certificatePaths);
     }
 
     @Override
@@ -99,63 +100,79 @@ public class X509TruststoreConfigProvider implements ConfigProvider {
         }
     }
 
+    private ConfigData getTrustStoreConfig(Set<String> certificatePaths)    {
+        String trustStorePath = setupTrustStore(PASSWORD.toCharArray(), x509Certificate(certificatePaths)).getAbsolutePath();
+
+        Map<String, String> data = new HashMap<>();
+        for (String key : certificatePaths) {
+            LOGGER.warn("Return values {}={}" , key, trustStorePath);
+            data.put(key, trustStorePath);
+        }
+
+        return new ConfigData(data);
+    }
+
     private CertificateFactory certificateFactory() {
-        CertificateFactory factory = null;
+        CertificateFactory factory;
+
         try {
             factory = CertificateFactory.getInstance("X.509");
         } catch (CertificateException e) {
-            throw new RuntimeException("No security provider with support for X.509 certificates", e);
+            throw new KafkaException("No security provider with support for X.509 certificates", e);
         }
+
         return factory;
     }
 
-    private X509Certificate x509Certificate(String certPath) {
+    private Set<X509Certificate> x509Certificate(Set<String> certificatePaths) {
+        Set<X509Certificate> certificates = new HashSet<>();
 
-        try {
-            byte[] cert = Files.readAllBytes(Paths.get(certPath));
+        for (String certPath : certificatePaths) {
+            try {
+                byte[] cert = Files.readAllBytes(Paths.get(certPath));
 
-            Certificate certificate = factory.generateCertificate(new ByteArrayInputStream(cert));
-            if (certificate instanceof X509Certificate) {
-                return (X509Certificate) certificate;
-            } else {
-                throw new RuntimeException("Not an X509Certificate: " + certificate);
+                Certificate certificate = factory.generateCertificate(new ByteArrayInputStream(cert));
+                if (certificate instanceof X509Certificate) {
+                    certificates.add((X509Certificate) certificate);
+                } else {
+                    throw new KafkaException("Not an X509Certificate: " + certificate);
+                }
+            } catch (IOException e) {
+                throw new KafkaException("Failed to read the file " + certPath, e);
+            } catch (CertificateException e) {
+                throw new KafkaException("Failed to load the certificate from file " + certPath, e);
             }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read the file " + certPath, e);
-        } catch (CertificateException e) {
-            throw new RuntimeException("Failed to load the certificate from file " + certPath, e);
         }
+
+        return certificates;
     }
 
-    /*private X509Certificate x509Certificate(byte[] bytes) throws CertificateException {
-        Certificate certificate = factory.generateCertificate(new ByteArrayInputStream(bytes));
-        if (certificate instanceof X509Certificate) {
-            return (X509Certificate) certificate;
-        } else {
-            throw new CertificateException("Not an X509Certificate: " + certificate);
-        }
-    }*/
-
-    private File setupTrustStore(char[] password, X509Certificate caCertCO) {
+    private File setupTrustStore(char[] password, Set<X509Certificate> certs) {
         try {
             KeyStore trustStore = null;
             trustStore = KeyStore.getInstance("PKCS12");
             trustStore.load(null, password);
-            trustStore.setEntry(caCertCO.getSubjectDN().getName(), new KeyStore.TrustedCertificateEntry(caCertCO), null);
+
+            for (X509Certificate cert : certs) {
+                trustStore.setEntry(cert.getSubjectDN().getName(), new KeyStore.TrustedCertificateEntry(cert), null);
+            }
+
             return store(password, trustStore);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private File store(char[] password, KeyStore trustStore) throws Exception {
+    private File store(char[] password, KeyStore keyStore) throws Exception {
         File f = null;
         try {
             f = File.createTempFile(getClass().getName(), "ts");
             f.deleteOnExit();
+
             try (OutputStream os = new BufferedOutputStream(new FileOutputStream(f))) {
-                trustStore.store(os, password);
+                keyStore.store(os, password);
             }
+
             return f;
         } catch (IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException | RuntimeException e) {
             if (f != null && !f.delete()) {
