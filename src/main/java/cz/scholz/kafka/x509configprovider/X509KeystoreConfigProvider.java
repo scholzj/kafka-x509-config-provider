@@ -1,4 +1,4 @@
-package io.strimzi.kafka.x509configprovider;
+package cz.scholz.kafka.x509configprovider;
 
 import org.apache.kafka.common.config.ConfigChangeCallback;
 import org.apache.kafka.common.config.ConfigData;

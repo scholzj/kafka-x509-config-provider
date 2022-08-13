@@ -1,4 +1,4 @@
-package io.strimzi.kafka.x509configprovider;
+package cz.scholz.kafka.x509configprovider;
 
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.config.ConfigChangeCallback;
@@ -24,7 +24,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
