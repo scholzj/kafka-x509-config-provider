@@ -4,20 +4,14 @@
  */
 package cz.scholz.kafka.x509configprovider;
 
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.config.ConfigData;
 import org.apache.kafka.common.config.provider.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -77,7 +71,6 @@ public class X509TruststoreConfigProvider extends AbstractX509ConfigProvider imp
 
         Map<String, String> data = new HashMap<>();
         for (String key : certificatePaths) {
-            LOGGER.warn("Return values {}={}" , key, trustStorePath);
             data.put(key, trustStorePath);
         }
 
@@ -94,7 +87,7 @@ public class X509TruststoreConfigProvider extends AbstractX509ConfigProvider imp
             int i = 0;
 
             for (Certificate cert : certificates) {
-                trustStore.setEntry("trusted-" + i++, new KeyStore.TrustedCertificateEntry(cert), null);
+                trustStore.setCertificateEntry("trusted-" + i++, cert);
             }
 
             return store(password, trustStore);

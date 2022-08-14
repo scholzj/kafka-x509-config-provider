@@ -5,13 +5,11 @@
 package cz.scholz.kafka.x509configprovider;
 
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.config.ConfigChangeCallback;
 import org.apache.kafka.common.config.ConfigData;
 import org.apache.kafka.common.config.provider.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,9 +19,9 @@ import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -42,12 +40,20 @@ public class X509KeystoreConfigProvider extends AbstractX509ConfigProvider imple
 
     @Override
     public ConfigData get(String path) {
-        return null;
+        if (path == null || path.isEmpty()) {
+            throw new KafkaException("Private key and at least one public key need to be specified in order to create a keystore");
+        }
+
+        return getKeyStoreConfig(path, new HashSet<>());
     }
 
     @Override
     public ConfigData get(String path, Set<String> keys) {
-        return null;
+        if (path == null || path.isEmpty() || keys == null || keys.isEmpty()) {
+            throw new KafkaException("Private key and at least one public key need to be specified in order to create a keystore");
+        }
+
+        return getKeyStoreConfig(path, keys);
     }
 
     @Override
@@ -64,12 +70,10 @@ public class X509KeystoreConfigProvider extends AbstractX509ConfigProvider imple
     // Implementation
     ////////////////////
 
-    private ConfigData getKeyStoreConfig(String certPath, String keyPath)    {
-        LOGGER.info("Generating keystore with public key {} and private key {}", certPath, keyPath);
+    private ConfigData getKeyStoreConfig(String keyPath, Set<String> certPaths)    {
+        LOGGER.info("Generating keystore with public keys {} and private key {}", certPaths, keyPath);
 
-
-
-        String keyStorePath = setupKeystoreStore(PASSWORD.toCharArray(), keyPath, certPath).getAbsolutePath();
+        String keyStorePath = setupKeystoreStore(PASSWORD.toCharArray(), keyPath, certPaths).getAbsolutePath();
 
         Map<String, String> data = new HashMap<>();
         data.put(keyPath, keyStorePath);
@@ -79,11 +83,8 @@ public class X509KeystoreConfigProvider extends AbstractX509ConfigProvider imple
         return new ConfigData(data);
     }
 
-    private File setupKeystoreStore(char[] password, String keyPath, String certPath) {
+    private File setupKeystoreStore(char[] password, String keyPath, Set<String> certPaths) {
         try {
-            Set<String> certPaths = new HashSet<>();
-            certPaths.add(certPath);
-
             KeyStore keystore = KeyStore.getInstance("PKCS12");
             keystore.load(null, null);
             keystore.setKeyEntry("private-key", loadRSAPrivateKey(keyPath), new char[0], certificates(certPaths).toArray(new Certificate[0]));
@@ -96,7 +97,7 @@ public class X509KeystoreConfigProvider extends AbstractX509ConfigProvider imple
 
     private PrivateKey loadRSAPrivateKey(String keyPath) {
         try {
-            byte[] key = Files.readAllBytes(Paths.get(keyPath));
+            byte[] key = Base64.getDecoder().decode(Files.readAllBytes(Paths.get(keyPath)));
             return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(key));
         } catch (IOException e) {
             throw new KafkaException("Failed to read the file " + keyPath, e);

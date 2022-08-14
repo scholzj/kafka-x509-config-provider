@@ -22,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -52,7 +53,7 @@ public class AbstractX509ConfigProvider {
     protected File store(char[] password, KeyStore keyStore) throws Exception {
         File f = null;
         try {
-            f = File.createTempFile("ts-" + getClass().getName(), "p12");
+            f = File.createTempFile("truststore-" + getClass().getName(), ".p12");
             f.deleteOnExit();
 
             try (OutputStream os = new BufferedOutputStream(new FileOutputStream(f))) {
