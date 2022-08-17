@@ -10,8 +10,10 @@ import org.apache.kafka.common.config.provider.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyFactory;
@@ -77,6 +79,9 @@ public class X509KeystoreConfigProvider extends AbstractX509ConfigProvider imple
 
         Map<String, String> data = new HashMap<>();
         data.put(keyPath, keyStorePath);
+        for (String certPath : certPaths) {
+            data.put(certPath, keyStorePath);
+        }
 
         LOGGER.info("New keystore {} is ready", keyStorePath);
 
@@ -97,7 +102,8 @@ public class X509KeystoreConfigProvider extends AbstractX509ConfigProvider imple
 
     private PrivateKey loadRSAPrivateKey(String keyPath) {
         try {
-            byte[] key = Base64.getDecoder().decode(Files.readAllBytes(Paths.get(keyPath)));
+            byte[] key = decodePrivateKey(keyPath);
+            // Right now, only PKCS8 is supported. PKCS1 is not supported.
             return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(key));
         } catch (IOException e) {
             throw new KafkaException("Failed to read the file " + keyPath, e);
@@ -106,5 +112,36 @@ public class X509KeystoreConfigProvider extends AbstractX509ConfigProvider imple
         } catch (NoSuchAlgorithmException e) {
             throw new KafkaException("KeyFactory implementing algorithm RSA was not found", e);
         }
+    }
+
+    // Based on the Fabric8 Kubernetes client CertUtils class
+    // https://github.com/fabric8io/kubernetes-client/blob/master/kubernetes-client-api/src/main/java/io/fabric8/kubernetes/client/internal/CertUtils.java
+    private byte[] decodePrivateKey(String keyPath) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(Paths.get(keyPath))))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("-----BEGIN ")) {
+                    return readBytesUntilEndMarker(reader, line.trim().replace("BEGIN", "END"));
+                }
+            }
+
+            throw new KafkaException("PEM is invalid: no begin marker");
+        }
+    }
+
+    private byte[] readBytesUntilEndMarker(BufferedReader reader, String endMarker) throws IOException {
+        String line;
+        StringBuilder stringBuilder = new StringBuilder();
+
+        while ((line = reader.readLine()) != null) {
+            if (line.contains(endMarker)) {
+                return Base64.getDecoder().decode(stringBuilder.toString());
+            }
+
+            stringBuilder.append(line.trim());
+        }
+
+        throw new KafkaException("PEM is invalid: No end marker");
     }
 }

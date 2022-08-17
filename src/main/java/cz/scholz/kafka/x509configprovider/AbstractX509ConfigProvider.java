@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -22,7 +21,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -53,10 +51,10 @@ public class AbstractX509ConfigProvider {
     protected File store(char[] password, KeyStore keyStore) throws Exception {
         File f = null;
         try {
-            f = File.createTempFile("truststore-" + getClass().getName(), ".p12");
+            f = File.createTempFile(getClass().getName(), ".p12");
             f.deleteOnExit();
 
-            try (OutputStream os = new BufferedOutputStream(new FileOutputStream(f))) {
+            try (OutputStream os = new BufferedOutputStream(Files.newOutputStream(f.toPath()))) {
                 keyStore.store(os, password);
             }
 
@@ -75,7 +73,6 @@ public class AbstractX509ConfigProvider {
         for (String certPath : certificatePaths) {
             try {
                 byte[] cert = Files.readAllBytes(Paths.get(certPath));
-                //Certificate certificate = factory.generateCertificates(new ByteArrayInputStream(cert));
                 certificates.addAll(factory.generateCertificates(new ByteArrayInputStream(cert)));
             } catch (IOException e) {
                 throw new KafkaException("Failed to read the file " + certPath, e);

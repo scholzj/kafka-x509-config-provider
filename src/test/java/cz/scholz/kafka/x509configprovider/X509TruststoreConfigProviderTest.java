@@ -7,11 +7,10 @@ package cz.scholz.kafka.x509configprovider;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.config.ConfigData;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -29,7 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class X509TruststoreConfigProviderTest {
-    private static X509TruststoreConfigProvider TRUSTSTORE_PROVIDER = new X509TruststoreConfigProvider();
+    private static final X509TruststoreConfigProvider TRUSTSTORE_PROVIDER = new X509TruststoreConfigProvider();
 
     @Test
     public void testLoadingOfOneCertificate() throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
@@ -40,7 +39,7 @@ public class X509TruststoreConfigProviderTest {
 
         String truststorePath = data.data().get(certPath);
         KeyStore store = KeyStore.getInstance("pkcs12");
-        store.load(new FileInputStream(truststorePath), AbstractX509ConfigProvider.PASSWORD.toCharArray());
+        store.load(Files.newInputStream(Paths.get(truststorePath)), AbstractX509ConfigProvider.PASSWORD.toCharArray());
 
         Enumeration<String> aliases = store.aliases();
         int noOfCerts = 0;
@@ -65,7 +64,7 @@ public class X509TruststoreConfigProviderTest {
 
         String truststorePath = data.data().get(certPath);
         KeyStore store = KeyStore.getInstance("pkcs12");
-        store.load(new FileInputStream(truststorePath), AbstractX509ConfigProvider.PASSWORD.toCharArray());
+        store.load(Files.newInputStream(Paths.get(truststorePath)), AbstractX509ConfigProvider.PASSWORD.toCharArray());
 
         Enumeration<String> aliases = store.aliases();
         int noOfCerts = 0;
@@ -90,7 +89,7 @@ public class X509TruststoreConfigProviderTest {
 
         String truststorePath = data.data().get(certPath);
         KeyStore store = KeyStore.getInstance("pkcs12");
-        store.load(new FileInputStream(truststorePath), AbstractX509ConfigProvider.PASSWORD.toCharArray());
+        store.load(Files.newInputStream(Paths.get(truststorePath)), AbstractX509ConfigProvider.PASSWORD.toCharArray());
 
         Enumeration<String> aliases = store.aliases();
         int noOfCerts = 0;
@@ -124,7 +123,7 @@ public class X509TruststoreConfigProviderTest {
 
         String truststorePath = data.data().get(certPath);
         KeyStore store = KeyStore.getInstance("pkcs12");
-        store.load(new FileInputStream(truststorePath), AbstractX509ConfigProvider.PASSWORD.toCharArray());
+        store.load(Files.newInputStream(Paths.get(truststorePath)), AbstractX509ConfigProvider.PASSWORD.toCharArray());
 
         Enumeration<String> aliases = store.aliases();
         int noOfCerts = 0;
