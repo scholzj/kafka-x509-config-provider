@@ -56,7 +56,7 @@ public class X509KeystoreConfigProviderTest {
             noOfKeys++;
             String alias = aliases.nextElement();
 
-            Key key = store.getKey(alias, null);
+            Key key = store.getKey(alias, AbstractX509ConfigProvider.PASSWORD.toCharArray());
             assertThat(key, is(notNullValue()));
 
             Certificate[] certs = store.getCertificateChain(alias);
@@ -97,7 +97,7 @@ public class X509KeystoreConfigProviderTest {
             noOfKeys++;
             String alias = aliases.nextElement();
 
-            Key key = store.getKey(alias, null);
+            Key key = store.getKey(alias, AbstractX509ConfigProvider.PASSWORD.toCharArray());
             assertThat(key, is(notNullValue()));
 
             Certificate[] certs = store.getCertificateChain(alias);

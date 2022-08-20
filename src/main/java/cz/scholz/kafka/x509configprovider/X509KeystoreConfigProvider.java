@@ -92,7 +92,7 @@ public class X509KeystoreConfigProvider extends AbstractX509ConfigProvider imple
         try {
             KeyStore keystore = KeyStore.getInstance("PKCS12");
             keystore.load(null, null);
-            keystore.setKeyEntry("private-key", loadRSAPrivateKey(keyPath), new char[0], certificates(certPaths).toArray(new Certificate[0]));
+            keystore.setKeyEntry("private-key", loadRSAPrivateKey(keyPath), password, certificates(certPaths).toArray(new Certificate[0]));
 
             return store(password, keystore);
         } catch (Exception e) {

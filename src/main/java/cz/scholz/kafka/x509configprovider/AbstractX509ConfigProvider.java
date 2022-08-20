@@ -27,7 +27,7 @@ import java.util.Set;
 public class AbstractX509ConfigProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractX509ConfigProvider.class);
 
-    protected static final String PASSWORD = "changeit";
+    protected static final String PASSWORD = "";
 
     protected final CertificateFactory factory;
 
