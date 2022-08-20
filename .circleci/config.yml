@@ -19,7 +19,7 @@ jobs:
       - attach_workspace:
           at: ./target
       - run: mvn test
-  public:
+  publish:
     docker:
       - image: cimg/openjdk:11.0
     steps:
