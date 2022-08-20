@@ -27,6 +27,7 @@ jobs:
       - attach_workspace:
           at: ./target
       - run:
+          name: Publish
           command: ./.circleci/push-to-nexus.sh
           environment:
             GPG_EXECUTABLE: GPG
