@@ -28,7 +28,15 @@ _Private key example_
 
 You can download the archives with the binaries on GitHub release page.
 You can download it, unpack it and copy the JAR file into the classpath of your Apache Kafka installation.
-If you want to use it with Apache Kafka clients, you can also get the project directly from Maven repositories.
+If you want to use it with Apache Kafka clients, you can also get the project directly from [Maven repositories](https://mvnrepository.com/artifact/cz.scholz/kafka-x509-config-provider):
+
+```xml
+        <dependency>
+            <groupId>cz.scholz</groupId>
+            <artifactId>kafka-x509-config-provider</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+```
 
 ## Configuration
 
