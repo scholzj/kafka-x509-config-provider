@@ -50,7 +50,7 @@
         <sonatype.nexus.staging.version>1.6.3</sonatype.nexus.staging.version>
 
         <!-- Runtime dependencies versions -->
-        <kafka.version>3.2.1</kafka.version>
+        <kafka.version>3.7.1</kafka.version>
         <slf4j.version>1.7.36</slf4j.version>
 
         <!-- Test dependencies versions -->
